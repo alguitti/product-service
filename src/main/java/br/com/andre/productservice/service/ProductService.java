@@ -1,56 +1,52 @@
 package br.com.andre.productservice.service;
 
-import br.com.andre.core.model.ProductEvent;
-import lombok.extern.slf4j.Slf4j;
+import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import br.com.andre.core.model.ProductEvent;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ProductService {
 
-    @Autowired
-    private KafkaTemplate<String, ProductEvent> kafkaTemplate;
+	
+	private final KafkaTemplate<String, ProductEvent> kafkaTemplate;
 
-    public ProductEvent createProduct(ProductEvent event) {
+	private static final String TOPIC = "products-created-events-topic";
 
-        String productId = UUID.randomUUID().toString();
-        
-        event.setId(productId);
+	public ProductEvent createProduct(ProductEvent event) {
 
-        //Forma assincrona
-        //kafkaTemplate.send("products-created-events-topic", productId, event);
+		String productId = UUID.randomUUID().toString();
 
-        //Forma Sincrona
-        CompletableFuture<SendResult<String, ProductEvent>> future =
-        		kafkaTemplate.send("products-created-events-topic", productId, (ProductEvent) event);
-        
-        future.whenComplete((result, exception) -> {
-        	
-        	if (exception != null) {
-        		log.error(exception.getMessage());
-        	} else {
-        		log.info("Assynchronous Successful: {}",result.getRecordMetadata());
-        	}
-        });
-        
-        log.info("****** esperando o completable future!");
-        future.join(); //força a thread principal a esperar a secundária a completar o future
-        
-        try {
-        	log.info("RESULTADOS: {}", future.get().toString());
-        } catch (Exception e) {
-        	log.error("DEU RUIM AQUI MEU CONSAGRADO!");
-        }
-        
-        
-        return event;
-    }
+		event.setId(productId);
+
+		SendResult<String, ProductEvent> result = null;
+		
+		//Using ProducerRecord to be able to send headers with kafka message
+		ProducerRecord<String, ProductEvent> producerRecord = new ProducerRecord<String, ProductEvent>
+			(TOPIC, productId, event);
+		producerRecord.headers().add("messageId", productId.getBytes());
+
+		try {
+
+			result = kafkaTemplate.send(producerRecord).get();
+
+		} catch (Exception e) {
+			log.error("[KAFKA PRODUCER] - Error while sending message to Kafka: {}. Event: {}", e, event);
+		}
+		
+		log.info("[KAFKA PRODUCER] - Partition: {}", result.getRecordMetadata().partition());
+		log.info("[KAFKA PRODUCER] - Topic: {}", result.getRecordMetadata().topic());
+		log.info("[KAFKA PRODUCER] - Offset: {}", result.getRecordMetadata().offset());
+
+		return event;
+	}
 
 }
