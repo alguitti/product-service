@@ -14,6 +14,7 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.kafka.transaction.KafkaTransactionManager;
 
 import br.com.andre.core.model.ProductEvent;
 
@@ -45,6 +46,7 @@ public class KafkaProducerConfig {
     	configs.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
     	configs.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, kafkaConfig.isIdempotenceEnabled());
     	configs.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, kafkaConfig.getMaxInflightRequests());
+    	configs.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, kafkaConfig.getTransactionId());
     	
     	return configs;
     }
@@ -57,6 +59,11 @@ public class KafkaProducerConfig {
     @Bean
     public KafkaTemplate<String, ProductEvent> createTemplate() {
     	return new KafkaTemplate<String, ProductEvent>(producerFactory());
+    }
+    
+    @Bean
+    public KafkaTransactionManager<String, ProductEvent> kafkaTransactionManager() {
+    	return new KafkaTransactionManager<>(producerFactory());
     }
 
 }

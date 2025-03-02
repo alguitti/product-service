@@ -6,6 +6,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import br.com.andre.core.model.ProductEvent;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@Transactional(value = "kafkaTransactionManager")
 public class ProductService {
 
 	
@@ -41,6 +43,8 @@ public class ProductService {
 		} catch (Exception e) {
 			log.error("[KAFKA PRODUCER] - Error while sending message to Kafka: {}. Event: {}", e, event);
 		}
+		
+		if (event.isToExplode()) throw new RuntimeException("Teste do @Transactional");
 		
 		log.info("[KAFKA PRODUCER] - Partition: {}", result.getRecordMetadata().partition());
 		log.info("[KAFKA PRODUCER] - Topic: {}", result.getRecordMetadata().topic());

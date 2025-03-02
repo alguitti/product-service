@@ -18,5 +18,6 @@ public class KafkaConfig {
 	private String linger;
 	private boolean idempotenceEnabled;
 	private String maxInflightRequests;
+	private String transactionId;
 
 }
