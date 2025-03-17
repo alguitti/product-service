@@ -76,10 +76,7 @@ public class ProductServiceIT {
 	
 	@Test
 	void testCreateProduct_whenGivenValidProductDetails_shouldSendToKafkaTopic() throws Exception {
-		
-//		mockMvc.perform(MockMvcRequestBuilders.post("/products", buildProductEvent()))
-//			.andExpect(status().isOk()).andDo(print());
-		
+
 		productService.createProduct(buildProductEvent());
 		
 		ConsumerRecord<String, ProductEvent> message = records.poll(3000, TimeUnit.MILLISECONDS);
